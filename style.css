@@ -1,0 +1,64 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #33251d;
+  background: #f8f1e6;
+  line-height: 1.55;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { width: min(100% - 30px, 690px); margin: 24px auto 60px; }
+header { border-radius: 22px; color: #fff8ec; background: #5a3027; padding: 26px 23px; }
+header p { margin: 0; color: #ffe0bd; }
+h1 { font-size: clamp(28px, 7vw, 43px); line-height: 1.18; margin: 5px 0 2px; }
+h2 { font-size: 21px; margin: 0 0 13px; }
+h3 { margin: 12px 0 3px; }
+p { margin: 7px 0; }
+section, details, dialog {
+  padding: 20px;
+  border: 1px solid #eadbc9;
+  border-radius: 16px;
+  background: #fffdf8;
+  margin: 13px 0;
+}
+summary { cursor: pointer; font-weight: 650; }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+label { display: block; font-weight: 550; margin: 11px 0; }
+input, select, textarea, button { font: inherit; }
+input, select, textarea {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  background: #fffaf2;
+  border: 1px solid #dbc7b2;
+  padding: 9px 12px;
+  border-radius: 9px;
+  color: inherit;
+}
+textarea { min-height: 70px; resize: vertical; }
+button {
+  min-height: 41px;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 9px;
+  margin: 5px 4px 3px 0;
+  background: #f4e8d9;
+  color: #653b2d;
+  cursor: pointer;
+}
+button[type=submit], button.primary { background: #99422c; color: white; }
+button:disabled { opacity: .55; cursor: wait; }
+small, .muted, footer { color: #765d51; }
+.error { background: #fae2d9; color: #842d20; padding: 9px 12px; border-radius: 9px; }
+.rows { padding: 0; list-style: none; margin: 0 0 10px; }
+.rows li { padding: 8px 0; border-bottom: 1px solid #f1e7db; }
+.record { border-top: 1px solid #ecdccb; padding: 8px 0; overflow-wrap: anywhere; }
+pre { white-space: pre-wrap; font: inherit; }
+.tabs { display: flex; gap: 7px; margin-top: 8px; }
+.tabs button[aria-pressed=true] { background: #f1d9c4; }
+dialog { max-width: min(92vw, 640px); margin: auto; }
+dialog::backdrop { background: #24180fb0; }
+dialog img { display: block; max-width: 100%; max-height: 68vh; }
+dialog input { min-width: min(68vw, 420px); }
+.table { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 350px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 5px; border-bottom: 1px solid #f0e5d7; overflow-wrap: anywhere; }
