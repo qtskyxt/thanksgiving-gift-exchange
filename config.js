@@ -1,2 +1,2 @@
-// 本地运行留空。GitHub Pages 部署时填 HTTPS 后端地址，例如 https://gifts.example.com。
-window.GIFT_API = ''
+// 临时公网试用地址。隧道重启后需更新。
+window.GIFT_API = 'https://section-insights-forgot-plates.trycloudflare.com'
