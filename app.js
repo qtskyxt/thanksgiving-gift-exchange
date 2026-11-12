@@ -30,6 +30,7 @@ let archive = []
 let screen = 'season'
 let filter = ''
 let busy = false
+let selectedMembers = null
 
 const escaped = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -78,7 +79,7 @@ async function perform(action) {
 
 async function refresh() {
   season = seasonId ? await call('get') : null
-  if (season?.owner || season?.enrolled) localStorage.setItem('gift-current:' + key, seasonId)
+  if (season?.owner || season?.member) localStorage.setItem('gift-current:' + key, seasonId)
   if (screen === 'archive') archive = await call('history')
   render()
 }
@@ -121,21 +122,34 @@ function inviteLink() {
   return url
 }
 
+function membership() {
+  if (!season.member) return `<section><h2>加入成员组</h2><form data-op="joinGroup">
+    <label>昵称<input name="name" maxlength="24" required></label><button type="submit">加入成员组</button>
+    </form><p class="muted">本届参加名单由组织者选择。</p></section>`
+  return `<details><summary>我的成员资料 · ${escaped(season.myName)}</summary>
+    <form data-op="memberProfile"><label>昵称<input name="name" value="${escaped(season.myName)}" maxlength="24" required></label>
+    <button type="submit">保存昵称</button></form></details>`
+}
+
 function joining() {
-  const roster = season.roster || []
-  const joinForm = !season.enrolled ? `<section><h2>加入活动</h2><form data-op="join">
-    <label>昵称<input name="name" maxlength="24" required></label><button type="submit">报名</button>
-    </form></section>` : ''
   const profile = season.myProfile || {}
-  const profileForm = season.enrolled && season.mode === 'draw' ? `<section><h2>我的收件信息</h2>
+  const profileForm = season.member && season.mode === 'draw' ? `<details><summary>本届收件资料</summary>
     <form data-op="profile"><label>收件人、电话和地址<textarea name="address" maxlength="240" required>${escaped(profile.address)}</textarea></label>
-    <label>送礼偏好<textarea name="tips" maxlength="400">${escaped(profile.tips)}</textarea></label><button type="submit">保存</button></form></section>` : ''
-  const progress = season.owner || season.enrolled ? `<section><h2>报名名单 · ${roster.length} 人</h2>
-    <ul class="rows">${roster.map(person => '<li>' + escaped(person.name) + (season.mode === 'draw' ? (person.profileReady ? ' · 资料已填' : ' · 待填资料') : '') + '</li>').join('')}</ul>
-    <button type="button" data-action="invite">复制群邀请链接</button>
-    ${season.owner ? '<button type="button" class="primary" data-action="start">锁定名单并开始</button>' : ''}
-    </section>` : ''
-  return joinForm + profileForm + progress
+    <label>送礼偏好<textarea name="tips" maxlength="400">${escaped(profile.tips)}</textarea></label><button type="submit">保存</button></form></details>` : ''
+  if (!season.owner) return profileForm + (season.member ? '<section><p>已加入成员组，等待组织者确定本届名单。</p></section>' : '')
+  const candidates = season.candidates || []
+  selectedMembers ||= new Set((season.roster || []).map(person => person.id))
+  return profileForm + `<section><h2>选择本届参加成员</h2>
+    <button type="button" data-action="invite">复制成员组邀请链接</button>
+    <form data-op="start">
+    <p class="muted">${candidates.length ? '勾选本届参加的人。组织者要参加也需勾选自己。' : '邀请成员加入后，在这里选择参加的人。'}</p>
+    ${candidates.map(person => `<label class="member-choice">
+      <input type="checkbox" name="roster" value="${escaped(person.id)}"${selectedMembers.has(person.id) ? ' checked' : ''}>
+      <span>${escaped(person.name)}${person.id === season.actor ? '（你）' : ''}
+      ${season.mode === 'draw' ? (person.profileReady ? ' · 资料已填' : ' · 待填资料') : ''}</span>
+    </label>`).join('')}
+    <button type="submit"${candidates.length ? '' : ' disabled'}>锁定本届名单并开始</button>
+    </form></section>`
 }
 
 function targetCard() {
@@ -239,7 +253,7 @@ function render() {
     app.innerHTML = createForm() + '<section><form data-op="open"><label>已有活动？粘贴群邀请链接<input name="invite" type="url" required></label><button type="submit">打开活动</button></form></section>'
     return
   }
-  const member = season.owner || season.enrolled
+  const member = season.owner || season.member
   const tabs = member ? `<nav class="tabs" aria-label="活动导航">
     <button type="button" data-action="season" aria-pressed="${screen === 'season'}">本届活动</button>
     <button type="button" data-action="archive" aria-pressed="${screen === 'archive'}">礼物档案</button>
@@ -252,7 +266,7 @@ function render() {
   let content = ''
   if (screen === 'archive' && member) content = archiveView()
   else if (season.phase === 'joining') content = joining()
-  else if (!member) content = '<section>本期报名已经结束，请联系组织者。</section>'
+  else if (!season.owner && !season.enrolled) content = season.member ? '<section>你没有参加本届活动。</section>' : ''
   else {
     content = targetCard()
     if (season.phase === 'receiving' && season.enrolled) content += receiving()
@@ -264,7 +278,8 @@ function render() {
     }
     content += season.results ? leaderboard() + giftList(season.results.gifts, true) : giftList(season.gifts)
   }
-  app.innerHTML = tabs + content + years
+  const profile = screen === 'season' ? membership() : ''
+  app.innerHTML = tabs + profile + content + years
 }
 
 function ballotPayload(form) {
@@ -299,6 +314,7 @@ async function switchTo(id) {
   seasonId = id
   screen = 'season'
   filter = ''
+  selectedMembers = null
   await refresh()
   history.replaceState(null, '', inviteLink())
 }
@@ -308,8 +324,15 @@ app.addEventListener('submit', event => {
   const form = event.target
   const op = form.dataset.op
   if (op === 'submit' && !confirm('确认交卷？提交后答卷将锁定。')) return
+  if (op === 'start') {
+    const count = form.querySelectorAll('input[name="roster"]:checked').length
+    const minimum = season.mode === 'results_only' ? 2 : 3
+    if (count < minimum) return announce('本届请至少选择 ' + minimum + ' 位参加成员。', true)
+    if (!confirm('确认锁定这 ' + count + ' 位成员并开始活动？')) return
+  }
   perform(async () => {
     const data = Object.fromEntries(new FormData(form))
+    if (op === 'start') data.roster = new FormData(form).getAll('roster')
     if (op === 'open') {
       const id = new URL(data.invite).searchParams.get('s')
       if (!id || !/^[0-9a-f]{32}$/.test(id)) throw new Error('请粘贴完整的群邀请链接')
@@ -336,6 +359,10 @@ app.addEventListener('input', event => {
   if (form) localStorage.setItem(draftKey(), JSON.stringify(ballotPayload(form)))
 })
 app.addEventListener('change', event => {
+  if (event.target.name === 'roster') {
+    if (event.target.checked) selectedMembers.add(event.target.value)
+    else selectedMembers.delete(event.target.value)
+  }
   if (event.target.id === 'switch-year') perform(() => switchTo(event.target.value))
   if (event.target.id === 'archive-filter') { filter = event.target.value; render() }
 })
@@ -351,10 +378,7 @@ app.addEventListener('click', event => {
     dialog.showModal()
   })
   const action = button.dataset.action
-  if (action === 'invite') showLink('群邀请链接', inviteLink().href, '把此链接发给要参加的朋友。')
-  if (action === 'start' && confirm('名单锁定后将不能再加入。确认开始？')) {
-    perform(async () => { await call('start'); await refresh() })
-  }
+  if (action === 'invite') showLink('群邀请链接', inviteLink().href, '好友可以用这个链接加入成员组。本届参加名单由组织者选择。')
   if (action === 'refresh') perform(refresh)
   if (action === 'season' || action === 'archive') perform(async () => { screen = action; await refresh() })
 })

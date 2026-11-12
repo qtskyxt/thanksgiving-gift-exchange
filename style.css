@@ -23,6 +23,8 @@ section, details, dialog {
 summary { cursor: pointer; font-weight: 650; }
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 label { display: block; font-weight: 550; margin: 11px 0; }
+.member-choice { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.member-choice input { width: 20px; height: 20px; margin: 0; accent-color: #99422c; }
 input, select, textarea, button { font: inherit; }
 input, select, textarea {
   display: block;
