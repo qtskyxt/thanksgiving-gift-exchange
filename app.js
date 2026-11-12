@@ -126,20 +126,22 @@ function membership() {
   if (!season.member) return `<section><h2>加入成员组</h2><form data-op="joinGroup">
     <label>昵称<input name="name" maxlength="24" required></label><button type="submit">加入成员组</button>
     </form><p class="muted">本届参加名单由组织者选择。</p></section>`
-  return `<details><summary>我的成员资料 · ${escaped(season.myName)}</summary>
+  const profile = season.myMemberProfile || {}
+  return `<details${season.myMemberProfile ? '' : ' open'}><summary>我的成员资料 · ${escaped(season.myName)}</summary>
     <form data-op="memberProfile"><label>昵称<input name="name" value="${escaped(season.myName)}" maxlength="24" required></label>
-    <button type="submit">保存昵称</button></form></details>`
+    <label>收件人<input name="recipient" autocomplete="name" value="${escaped(profile.recipient)}" maxlength="60"></label>
+    <label>联系电话<input type="tel" name="phone" autocomplete="tel" value="${escaped(profile.phone)}" maxlength="32"></label>
+    <label>收件地址<textarea name="address" autocomplete="street-address" maxlength="240">${escaped(profile.address)}</textarea></label>
+    <label>送礼偏好（选填）<textarea name="tips" maxlength="400">${escaped(profile.tips)}</textarea></label>
+    <p class="muted">收件资料可随时更新。抽签开始时，收件信息只提供给抽到你的成员。</p>
+    <button type="submit">保存成员资料</button></form></details>`
 }
 
 function joining() {
-  const profile = season.myProfile || {}
-  const profileForm = season.member && season.mode === 'draw' ? `<details><summary>本届收件资料</summary>
-    <form data-op="profile"><label>收件人、电话和地址<textarea name="address" maxlength="240" required>${escaped(profile.address)}</textarea></label>
-    <label>送礼偏好<textarea name="tips" maxlength="400">${escaped(profile.tips)}</textarea></label><button type="submit">保存</button></form></details>` : ''
-  if (!season.owner) return profileForm + (season.member ? '<section><p>已加入成员组，等待组织者确定本届名单。</p></section>' : '')
+  if (!season.owner) return season.member ? '<section><p>已加入成员组，等待组织者确定本届名单。</p></section>' : ''
   const candidates = season.candidates || []
   selectedMembers ||= new Set((season.roster || []).map(person => person.id))
-  return profileForm + `<section><h2>选择本届参加成员</h2>
+  return `<section><h2>选择本届参加成员</h2>
     <button type="button" data-action="invite">复制成员组邀请链接</button>
     <form data-op="start">
     <p class="muted">${candidates.length ? '勾选本届参加的人。组织者要参加也需勾选自己。' : '邀请成员加入后，在这里选择参加的人。'}</p>
